@@ -18,7 +18,7 @@ import os, json
 HEX_DIGITS = set(string.hexdigits)
 def url_to_name(url):
     name = Path(url).name
-    assert not set(name).difference(HEX_DIGITS), name
+    # assert not set(name).difference(HEX_DIGITS), name
     return name
 
 
@@ -72,12 +72,13 @@ def extract_boxes(label_file, ignore_image_quality=True):
     for _, row in annos.iterrows():
         if ignore_image_quality:
             url, sku_id, l, t, r, b = [row[k] for k in keys]
+            name = url_to_name(url)
         else:
             url, sku_id, l, t, r, b, quality = [row[k] for k in keys]
+            name = url_to_name(url)
             quality = json.loads(quality)
             if quality:
                 unqualified_names.add(name)
-        name = url_to_name(url)
         sku_id = int(sku_id)
         l, t, r, b = [float(v) for v in [l, t, r, b]]
         boxes[name].append([sku_id, l, t, r, b])

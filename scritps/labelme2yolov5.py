@@ -11,27 +11,69 @@ from multiprocessing import Pool
 sys.path.append(str(Path(__file__).absolute().parent.parent))
 from utils import extract_boxes, calc_iou
 
+# # posm
+# SKU_IDS = [4361889,
+#            4361890,
+#            4361891,
+#            4361892,
+#            4361896,
+#            4361900,
+#            4361901,           
+#            4361902,
+#            4361905,
+#            4361906,
+#            4361907,
+#            4361909,
+#            4361911,
+#            4373780,
+#            4373781,
+#            4373783,
+#            4373784,
+#            4374091,
+#            4374197,
+#            4374660,
+#            4374661,
+#            4374662,
+#            4374663,
+#            4374664,
+#            4374665]
 
-ROTATE_ID = 4347684
-IGNORE_AREA_ID = 1047936
-# SKU_IDS = [ROTATE_ID, IGNORE_AREA_ID]
-SKU_IDS = [4361889,4361890,4361891,4361892,4361902,4361905,4361906,4361907,4361909,4373780,4373781,4373783,4374091,4374197]
-NAMES = {ROTATE_ID: 'ROTATE', IGNORE_AREA_ID: 'IGNORE_AREA'}
-COLORS = {ROTATE_ID: (0, 255, 0), IGNORE_AREA_ID: (0, 0, 255)}
+SKU_IDS = [
+    1109398,
+    1109399,
+    4333077,
+    4333078,
+    4342717,
+    4342718,
+    4354723,
+    4354724,
+    4354725,
+    1053416,
+    1053418,
+    1053420,
+    1053427,
+    1062917,
+    1116352,
+    1077992,
+    4347115,
+    4364320,
+    4364321,
+    4359509,
+    1144660,
+    1144661,
+    1144662,
+    1144663,
+    4354733,
+    4354736,
+    4354737,
+    4354739,
+    4364336,
+    4364337,
+    4364339,
+    4364340
+]      
 VISUALIZE = False
 DEDUPE = True
-
-
-def debug(img_file, boxes):
-    img = load_img(str(img_file))
-    H, W = img.shape[:2]
-    for sku_id, l, t, r, b in boxes:
-        cv.rectangle(img, (int(l * W), int(t * H)), (int(r * W), int(b * H)), COLORS[sku_id], 3)
-    cv.imshow(f'{sku_id}', img)
-    if cv.waitKey() == 27:
-        exit()
-    cv.destroyAllWindows()
-
 
 def convert_coords(l, t, r, b):
     assert l >= 0 and l < r and r <= 0.5
@@ -75,6 +117,8 @@ def process(name, boxes_by_name, raw_img_dir, img_dir, lbl_dir, vis_dir):
     
     for sku_id, l, t, r, b in boxes_pre_sku:
 
+        if sku_id not in SKU_IDS:
+            continue
         model_id = SKU_IDS.index(sku_id)
         x, y = 0.5 * (l + r), 0.5 * (t + b)
         w, h = r - l, b - t
@@ -104,14 +148,15 @@ if __name__ == '__main__':
     vis_dir = dataset_dir / 'vis'
 
     shutil.rmtree(dataset_dir, ignore_errors=True)
-    img_dir.mkdir(parents=True, exist_ok=True)
+    shutil.move(raw_img_dir, img_dir)
+    # img_dir.mkdir(parents=True, exist_ok=True)
     lbl_dir.mkdir(parents=True, exist_ok=True)
     vis_dir.mkdir(parents=True, exist_ok=True)
 
     configs = [
         f'train: {dataset_dir}/train.list',
         f'val: {dataset_dir}/val.list',
-        'nc: 14', 'names: [4361889,4361890,4361891,4361892,4361902,4361905,4361906,4361907,4361909,4373780,4373781,4373783,4374091,4374197]'
+        'nc: 14', 'names: [4361889,4361890,4361891,4361892,4361902,4361905,4361906,4361907,4361909,4361911,4373780,4373781,4373783,4374091,4374197,4373784]'
     ]
     config_file = dataset_dir / 'dataset.yaml'
     config_file.write_text('\n'.join(configs))
