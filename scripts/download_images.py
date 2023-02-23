@@ -32,8 +32,3 @@ if __name__ == '__main__':
     download_list = [[url, img_dir / f'{name}.jpg'] for name, url in url_by_name.items()]
     download_images(download_list)
     del download_list
-
-    ## Verify images
-    img_file_list = [str(img_dir / f'{name}.jpg') for name in url_by_name]
-    logger.info(f'Verifying {len(img_file_list)} images ...')
-    verify_images(img_file_list)

@@ -35,7 +35,7 @@ def inside_confusion_areas(obj, confusion_areas):
     return max(iou) > 0.5 if iou else False
 
 
-def parse_groud_truth(ground_truth_file, confusion_areas, class_idx):
+def parse_groud_truth(ground_truth_file, class_idx):
     ground_truth = defaultdict(list)
     img_paths = {}
     num_objs = 0
@@ -59,15 +59,13 @@ def parse_groud_truth(ground_truth_file, confusion_areas, class_idx):
             t = yc - 0.5 * h
             b = yc + 0.5 * h
 
-            if key in confusion_areas and inside_confusion_areas([l, t, r, b], confusion_areas[key]):
-                continue
             ground_truth[key].append([l, t, r, b])
             num_objs += 1
     print('Loaded %d objects in %d images' % (num_objs, len(ground_truth)))
     return ground_truth, img_paths
 
 
-def parse_detect_result(detect_result_dir, ground_truth, confusion_areas, class_idx):
+def parse_detect_result(detect_result_dir, ground_truth, class_idx):
     raw_detect_result = defaultdict(list)
     num_objs = 0
     label_paths = glob(os.path.join(detect_result_dir, '*.txt'))
@@ -87,8 +85,6 @@ def parse_detect_result(detect_result_dir, ground_truth, confusion_areas, class_
             t = max(yc - 0.5 * h, 0)
             b = min(yc + 0.5 * h, 1)
             if l >= r or t >= b:
-                continue
-            if key in confusion_areas and inside_confusion_areas([l, t, r, b], confusion_areas[key]):
                 continue
             raw_detect_result[key].append([l, t, r, b])
             num_objs += 1
@@ -208,14 +204,6 @@ def visualize(img_path, tps, fps, fns, vis_dir, display_score, channels):
         else:
             for i in range(2):
                 cv.rectangle(imgs[i], (l, t), (r, b), color, 2)
-        if display_score:
-            if channels == 3:
-                cv.rectangle(img, (l - 2, t - 10), (l + 25, t), color, -1)
-                cv.putText(img, (l, t - 2), cv.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))
-            else:
-                for i in range(2):
-                    cv.rectangle(imgs[i], (l - 2, t - 10), (l + 25, t), color, -1)
-                    cv.putText(imgs[i], (l, t - 2), cv.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))
 
     # Plot false positive
     color = (0, 0, 255)
@@ -226,14 +214,6 @@ def visualize(img_path, tps, fps, fns, vis_dir, display_score, channels):
         else:
             for i in range(2):
                 cv.rectangle(imgs[i], (l, t), (r, b), color, 2)
-        if display_score:
-            if channels == 3:
-                cv.rectangle(img, (l - 2, t - 10), (l + 25, t), color, -1)
-                cv.putText(img, (l, t - 2), cv.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))
-            else:
-                for i in range(2):
-                    cv.rectangle(imgs[i], (l - 2, t - 10), (l + 25, t), color, -1)
-                    cv.putText(imgs[i], (l, t - 2), cv.FONT_HERSHEY_COMPLEX, 0.3, (255, 255, 255))
 
     # Plot false negative
     color = (255, 0, 0)
@@ -254,19 +234,18 @@ def visualize(img_path, tps, fps, fns, vis_dir, display_score, channels):
 
 def parse_opt():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--ground_truth_file', default='/data/disk2/cv2022/unit_data/posm/testset/dataset/test.list', type=str)
-    parser.add_argument('--detect_result_dir', default='/home/jiayu/yolov5/runs/detect/exp3/labels', type=str)
+    parser.add_argument('--ground_truth_file', default='', type=str)
+    parser.add_argument('--detect_result_dir', default='', type=str)
     parser.add_argument('--conf-thres', type=float, default=0.5, help='confidence threshold')
     parser.add_argument('--iou-thres', type=float, default=0.5, help='NMS IoU threshold')
-    parser.add_argument('--confusion_area_file', type=str, default='/home/jiayu/yolov5/runs/eval/exp/confusion_areas.json')
-    parser.add_argument('--summary_file', type=str, default='/home/jiayu/yolov5/runs/eval/exp/performance_report.json')
-    parser.add_argument('--vis_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp/vis')
-    parser.add_argument('--vis_url_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp/vis')
+    parser.add_argument('--summary_file', type=str, default='/home/jiayu/yolov5/runs/eval/exp001/performance_report.json')
+    parser.add_argument('--vis_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp001/vis')
+    parser.add_argument('--vis_url_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp001/vis')
     parser.add_argument('--remote_vis_dir', type=str, default='http:')
     parser.add_argument('--hide_score', action='store_true')
     parser.add_argument('--class_idx', type=int, default=-1)
     parser.add_argument('--channels', type=int, default=3)
-    parser.add_argument('--output_infer_wrong_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp/output.csv')
+    parser.add_argument('--output_infer_wrong_dir', type=str, default='/home/jiayu/yolov5/runs/eval/exp001/output.csv')
 
     opt = parser.parse_args()
     print(opt)
@@ -293,7 +272,6 @@ def run(
         detect_result_dir='detect_with_onnx',
         conf_thres=0.25,
         iou_thres=0.45,
-        confusion_area_file='data/converted_data/train/confusion_areas.json',
         summary_file='output/performance_report.json',
         vis_dir='output/vis',
         vis_url_dir='',
@@ -326,79 +304,71 @@ def run(
     summary = {}
     summary_keys = ['precision', 'recall', 'f1_score', 'img_num', 'gt_num', 'det_num', 'tp', 'fp', 'fn']
     summary_txt = [summary_keys]
-    print(confusion_area_file)
 
-    if not os.path.exists(confusion_area_file):
-        summary_values = [0, 0, 0, 0, 0, 0, 0, 0, 0]
-        summary = dict(zip(summary_keys, summary_values))
-        summary_txt.append(summary_values)
-    else:
-        ## Load ground truth and detection result
-        confusion_area = {}
-        # confusion_area = parse_confusion_area(confusion_area_file)
+    ## Load ground truth and detection result
 
-        ground_truth, img_paths = parse_groud_truth(ground_truth_file, confusion_area, class_idx)
-        raw_detect_result = parse_detect_result(detect_result_dir, ground_truth, confusion_area, class_idx)
+    ground_truth, img_paths = parse_groud_truth(ground_truth_file, class_idx)
+    raw_detect_result = parse_detect_result(detect_result_dir, ground_truth, class_idx)
 
-        ## Init dirs
-        if vis_dir:
-            shutil.rmtree(vis_dir, ignore_errors=True)
-            os.makedirs(vis_dir, exist_ok=True)
+    ## Init dirs
+    if vis_dir:
+        shutil.rmtree(vis_dir, ignore_errors=True)
+        os.makedirs(vis_dir, exist_ok=True)
 
-        ## Evaluation
-        num_img = len(open(ground_truth_file, 'r').readlines())
-        for it in iou_thres:
-            for st in conf_thres:
+    ## Evaluation
+    num_img = len(open(ground_truth_file, 'r').readlines())
+    for it in iou_thres:
+        for st in conf_thres:
 
-                xmin = []
-                ymin = []
-                xmax = []
-                ymax = []
-                imgurl = []
+            xmin = []
+            ymin = []
+            xmax = []
+            ymax = []
+            imgurl = []
 
-                num_gt, num_det = 0, 0
-                num_tp, num_fp, num_fn = 0, 0, 0
-                ious = []
-                #detect_result = filter_detect_result(raw_detect_result, st, it)
-                for key in tqdm(ground_truth, 'IoU thres = %.2f and score thres = %.2f ...' % (it, st)):
-                    tps, ious_per_img, fps, fns = calc_metrics(ground_truth[key], raw_detect_result[key], it)
-                    assert len(tps) + len(fps) == len(raw_detect_result[key]) and len(tps) + len(fns) == len(
-                        ground_truth[key])
-                    assert len(tps) == len(ious_per_img)
-                    num_gt += len(ground_truth[key])
-                    num_det += len(raw_detect_result[key])
-                    num_tp += len(tps)
-                    num_fp += len(fps)
-                    num_fn += len(fns)
-                    ious.extend(ious_per_img)
+            num_gt, num_det = 0, 0
+            num_tp, num_fp, num_fn = 0, 0, 0
+            ious = []
+            #detect_result = filter_detect_result(raw_detect_result, st, it)
+            for key in tqdm(ground_truth, 'IoU thres = %.2f and score thres = %.2f ...' % (it, st)):
+                tps, ious_per_img, fps, fns = calc_metrics(ground_truth[key], raw_detect_result[key], it)
+                assert len(tps) + len(fps) == len(raw_detect_result[key]) and len(tps) + len(fns) == len(
+                    ground_truth[key])
+                assert len(tps) == len(ious_per_img)
+                num_gt += len(ground_truth[key])
+                num_det += len(raw_detect_result[key])
+                num_tp += len(tps)
+                num_fp += len(fps)
+                num_fn += len(fns)
+                ious.extend(ious_per_img)
 
-                    if vis_dir:
-                        visualize(img_paths[key], tps, fps, fns, vis_dir, not hide_score, channels)
+                if vis_dir:
+                    visualize(img_paths[key], tps, fps, fns, vis_dir, not hide_score, channels)
 
-                    # output the ML recognized error image
-                    if fps or fns:
-                        for labels in [tps, fps]:
-                            for l, t, r, b in labels:
-                                xmin.append(l)
-                                ymin.append(t)
-                                xmax.append(r)
-                                ymax.append(b)
-                                imgurl.append('https://fileman.clobotics.cn/api/file/' + key[:-4])
+                # output the ML recognized error image
+                if fps or fns:
+                    for labels in [tps, fps]:
+                        for l, t, r, b in labels:
+                            xmin.append(l)
+                            ymin.append(t)
+                            xmax.append(r)
+                            ymax.append(b)
+                            imgurl.append('https://fileman.clobotics.cn/api/file/' + key[:-4])
 
-                productid = [1] * len(xmin)
-                df = pd.DataFrame(
-                    {'ImgUrl': imgurl, 'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax, 'ProductId': productid})
+            productid = [1] * len(xmin)
+            df = pd.DataFrame(
+                {'ImgUrl': imgurl, 'xmin': xmin, 'ymin': ymin, 'xmax': xmax, 'ymax': ymax, 'ProductId': productid})
 
-                os.makedirs(output_infer_wrong_dir, exist_ok=True)
-                df.to_csv(output_infer_wrong_dir + "/output.csv", index=False)
+            os.makedirs(output_infer_wrong_dir, exist_ok=True)
+            df.to_csv(output_infer_wrong_dir + "/output.csv", index=False)
 
-                prec = num_tp / num_det if num_det > 0 else 0
-                rec = num_tp / num_gt if num_gt > 0 else 0
-                f1 = (2 * prec * rec) / (prec + rec + 1e-16)
-                summary_values = ['%.3f' % prec, '%.3f' % rec, '%.3f' % f1, num_img, num_gt, num_det, num_tp, num_fp,
-                                  num_fn]
-                summary = dict(zip(summary_keys, summary_values))
-                summary_txt.append(summary_values)
+            prec = num_tp / num_det if num_det > 0 else 0
+            rec = num_tp / num_gt if num_gt > 0 else 0
+            f1 = (2 * prec * rec) / (prec + rec + 1e-16)
+            summary_values = ['%.3f' % prec, '%.3f' % rec, '%.3f' % f1, num_img, num_gt, num_det, num_tp, num_fp,
+                                num_fn]
+            summary = dict(zip(summary_keys, summary_values))
+            summary_txt.append(summary_values)
 
     performance_report_info = {}
     data = json.loads(json.dumps(performance_report_info))

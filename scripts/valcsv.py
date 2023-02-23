@@ -1,0 +1,1 @@
+#根据val.list和raw_label.csv，提取出val的csv格式文件，用于sku infer
