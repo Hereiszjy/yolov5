@@ -38,10 +38,10 @@ seaborn>=0.11.0
 # tensorflowjs>=3.9.0  # TF.js export
 # openvino-dev  # OpenVINO export
 
-# Deploy ----------------------------------------------------------------------
-setuptools>=65.5.1 # Snyk vulnerability fix
-wheel>=0.38.0 # Snyk vulnerability fix
-# tritonclient[all]~=2.24.0
+# # Deploy ----------------------------------------------------------------------
+# setuptools>=65.5.1 # Snyk vulnerability fix
+# wheel>=0.38.0 # Snyk vulnerability fix
+# # tritonclient[all]~=2.24.0
 
 # Extras ----------------------------------------------------------------------
 # mss  # screenshots
