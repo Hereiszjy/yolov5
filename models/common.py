@@ -952,4 +952,4 @@ class FCCDN(nn.Module):
         # y1 = self.conv_out_class(y1)
         # y2 = self.conv_out_class(y2)
         y = self.conv_out(self.upsample_x2(c))
-        return [y, y1, y2]
+        return y # B,C,H,W
