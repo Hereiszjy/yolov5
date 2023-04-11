@@ -8,15 +8,15 @@ python train.py --weights /home/jiayu/yolov5/yolov5l.pt --img-size 960 --device 
 --epochs 100 --data /home/jiayu/yolov5/data/posm_new.yaml --name posm_0105 --cos-lr --image-weights
 
 # eval
-python val.py --data /data/disk3/cv2022/data/sbd_20230216/dataset/dataset.yaml --weights runs/train/sbd_20230216/weights/best.pt \
---conf-thres 0.1 --task val --device 3 --name sbd_20230216 --img-size 960
+python val.py --data /data/disk3/cv2022/data/jjcn_posm_230313/dataset/dataset.yaml --weights runs/train/jjcn_posm_230313/weights/best.pt \
+--conf-thres 0.5 --task val --device 2 --name jjcn_posm_230313 --img-size 960
 
 # 训练jjcn的posm
 python train.py --weights /home/jiayu/yolov5/yolov5l.pt --img-size 960 --device 5 --batch-size 16 --epochs 50 \
 --data /home/jiayu/yolov5/data/posm_new.yaml --name posm_0112v2 --cos-lr --image-weights --resume
 
 # export
-python export.py --weights runs/train/sbd_20230216/weights/best.pt --include onnx --img 960
+python export.py --weights runs/train/jjcn_posm_2303132/weights/best.pt --include onnx --img 960
 
 # evaluate
 python evaluate.py ----ground_truth_file /data/disk3/cv2022/data/ccth_10_gt/dataset/all.list \

@@ -6,6 +6,7 @@ import torch
 import torchvision
 import time
 import random
+import pandas as pd
 from utils.general import non_max_suppression
 class YOLOV5_ONNX(object):
     def __init__(self,onnx_path):
@@ -14,8 +15,8 @@ class YOLOV5_ONNX(object):
         print(onnxruntime.get_device())
         self.input_name=self.get_input_name()
         self.output_name=self.get_output_name()
-        self.classes=['4361889', '4361890', '4361891', '4361892', '4361900','4361901','4361902','4361905','4361906','4361907',
-                        '4361909','4361911','4373780','4373781','4373783','4373784','4374091','4374197','4374660','4374661','4374664','4374665']
+        self.classes= pd.read_csv("/home/jiayu/yolov5/sku_list/jjcn_posm_230313.csv")["ProductId"].values.tolist()
+        self.classes.sort()
     def get_input_name(self):
         '''获取输入节点名称'''
         input_name=[]
@@ -229,7 +230,7 @@ class YOLOV5_ONNX(object):
         for *xyxy, conf, cls in boxinfo:
             label = '%s %.2f' % (self.classes[int(cls)], conf)
             # print('xyxy: ', xyxy)
-            self.plot_one_box(xyxy, img, label=label, color=colors[int(cls)], line_thickness=1)
+            self.plot_one_box(xyxy, img, label=label, color=colors[int(cls)], line_thickness=5)
 
         # cv2.namedWindow("dst",0)
         # cv2.imshow("dst", img)
@@ -240,5 +241,6 @@ class YOLOV5_ONNX(object):
 
 
 if __name__=="__main__":
-    model=YOLOV5_ONNX(onnx_path="/home/jiayu/yolov5/runs/train/posm_0105/weights/best.onnx")
-    model.infer(img_path="/home/jiayu/yolov5/POSM_1.jpeg")
+
+    model=YOLOV5_ONNX(onnx_path="/home/jiayu/yolov5/runs/train/jjcn_posm_2303132/weights/best.onnx")
+    model.infer(img_path="/home/jiayu/yolov5/test.jpg")
